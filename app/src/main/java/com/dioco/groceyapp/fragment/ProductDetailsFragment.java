@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -85,6 +86,9 @@ public class ProductDetailsFragment extends BaseFragment {
         super.onCreate(savedInstanceState);
 
         activity = GrocerApplication.getmInstance().getActivity();
+
+        /*resGetProductList = (ResGetProductList) getArguments().getSerializable("ProductWeight");
+        Log.d("res_product_data:",resGetProductList.toString());*/
         bundle = getArguments();
 
         if (bundle != null) {
@@ -209,7 +213,6 @@ public class ProductDetailsFragment extends BaseFragment {
 
         if (!hidden) {
             initToolbar();
-
         }
     }
 }

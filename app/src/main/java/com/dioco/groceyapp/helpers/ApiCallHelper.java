@@ -6,8 +6,10 @@ import android.util.Log;
 
 import com.dioco.groceyapp.R;
 import com.dioco.groceyapp.interfaces.GetProductListInterface;
+import com.dioco.groceyapp.interfaces.GetProductWeightInterface;
 import com.dioco.groceyapp.interfaces.Services;
 import com.dioco.groceyapp.pojo.ResGetProductList;
+import com.dioco.groceyapp.pojo.ResGetProductWeight;
 
 import java.security.cert.CertificateException;
 import java.util.List;
@@ -31,9 +33,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiCallHelper {
 
     public GetProductListInterface getProductDelegate = null;
-
-
-
+    public GetProductWeightInterface getProductWeightDelegate = null;
 
     //GET PRODUCT LIST
     public void getProductList(final Context context) {
@@ -150,6 +150,69 @@ public class ApiCallHelper {
         }
     }
     //GET PRODUCT LIST
+
+    /*
+    * Get Product Weight Variations
+    * */
+    public void getProductWeightVariation(final Context context, final String productId) {
+
+        Services services = getServiceRetrofit(context);
+
+        final ProgressDialog pDialog = new ProgressDialog(context);
+        pDialog.setMessage(context.getResources().getString(R.string.alert_loading));
+        pDialog.show();
+
+        try {
+            //RequestBody name = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), getSyncJson().toString());
+            Call<List<ResGetProductWeight>> req = services.getProductWeightVariation(productId);
+            req.enqueue(new Callback<List<ResGetProductWeight>>() {
+                @Override
+                public void onResponse(Call<List<ResGetProductWeight>> call, Response<List<ResGetProductWeight>> response) {
+                    Log.d("response-getProductWgt", "Upload response:" + response);
+                    pDialog.dismiss();
+
+                    if (response.code() == 200) {
+                        Log.d("response-getProductWgt", "Upload response:" + response.message());
+                        Log.d("response-getProductWgt", "Upload response_code:" + response.code());
+                        try {
+                            //JSONObject jsonObject = response.body();
+                            Log.d("response-getProductWgt", "Upload response_body:" + response.body().toString());
+
+                            if (response.body() != null) {
+                                List<ResGetProductWeight> resGetProductWeights = response.body();
+                                Log.d("response-getProductWgt:", String.valueOf(resGetProductWeights.size()));
+                                getProductWeightDelegate.processFinishGetProductWeight(resGetProductWeights);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Log.d("response-error", e.getMessage());
+                        }
+                    } else {
+                        Log.d("response-getProductWgt", "Upload response:" + response.message());
+                        PopUpHelper.displayAlertDialog(context, "Getting Some Server Error..!");
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<ResGetProductWeight>> call, Throwable t) {
+                    Log.d("response-getProductWgt", "Fail:");
+                    Log.d("response-getProductWgt", t.toString());
+                    System.out.println(t.toString());
+
+                    pDialog.dismiss();
+                    PopUpHelper.displayAlertDialog(context, context.getResources().getString(R.string.alert_fail_getProductWeight));
+                    t.printStackTrace();
+                }
+
+            });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    /*
+     * Get Product Weight Variations
+     * */
 
 
 

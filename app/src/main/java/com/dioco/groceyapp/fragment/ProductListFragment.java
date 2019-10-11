@@ -26,10 +26,13 @@ import com.dioco.groceyapp.data.TempListData;
 import com.dioco.groceyapp.helpers.ApiCallHelper;
 import com.dioco.groceyapp.helpers.PopUpHelper;
 import com.dioco.groceyapp.interfaces.GetProductListInterface;
+import com.dioco.groceyapp.interfaces.GetProductWeightInterface;
 import com.dioco.groceyapp.model.product.ProductListModel;
 import com.dioco.groceyapp.pojo.ResGetProductList;
+import com.dioco.groceyapp.pojo.ResGetProductWeight;
 import com.dioco.groceyapp.util.Utils;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,7 +50,7 @@ import java.util.List;
  */
 
 
-public class ProductListFragment extends BaseFragment implements ProductListAdapter.OnItemClickListener, GetProductListInterface {
+public class ProductListFragment extends BaseFragment implements GetProductListInterface, ProductListAdapter.OnItemClickListener, GetProductWeightInterface {
 
     //Declaration
     private RecyclerView rvProductList;
@@ -58,12 +61,16 @@ public class ProductListFragment extends BaseFragment implements ProductListAdap
     private Context context;
     private ApiCallHelper apiCallHelper = new ApiCallHelper();
     private List<ResGetProductList> resGetProductLists;
+    private List<ResGetProductWeight> resGetProductWeightList;
+    private ArrayList<String> KgWeights;
+    private String productId;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activity = GrocerApplication.getmInstance().getActivity();
         context = getActivity();
+        productListAdapter = new ProductListAdapter(context);
     }
 
     @Override
@@ -72,7 +79,8 @@ public class ProductListFragment extends BaseFragment implements ProductListAdap
 
         initToolbar();
         setHasOptionsMenu(true);
-        executeProductListData();
+        executeProductListDataAPI();
+        executeProductWeightDataAPI();
         initComponents(rootView);
 
         return rootView;
@@ -81,19 +89,23 @@ public class ProductListFragment extends BaseFragment implements ProductListAdap
     /**
      * init Components
      */
-
     @Override
     public void initComponents(View rootView) {
         rvProductList = (RecyclerView) rootView.findViewById(R.id.fragment_productlist_rvProductList);
         mLayoutManager = new GridLayoutManager(activity, 2);
         rvProductList.setLayoutManager(mLayoutManager);
-    }
-    /**
-     * SetUp Toolbar & title
-     */
 
-    //Get Home data by calling Api
-    private void executeProductListData() {
+        KgWeights = new ArrayList<>();
+        KgWeights.add("250g");
+        KgWeights.add("500g");
+        KgWeights.add("1kg");
+    }
+
+
+    /*
+    * Get Home data by calling Api
+    * */
+    private void executeProductListDataAPI() {
         try {
             //Log.d("internate-check:", String.valueOf(PopUpHelper.checkInternetConnectionPopup(context)));
             if (PopUpHelper.checkInternetConnection(context)) {
@@ -107,7 +119,7 @@ public class ProductListFragment extends BaseFragment implements ProductListAdap
                         .setIcon(android.R.drawable.ic_dialog_info)
                         .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
-                                executeProductListData();
+                                executeProductListDataAPI();
                             }
                         })
                         .show();
@@ -118,6 +130,36 @@ public class ProductListFragment extends BaseFragment implements ProductListAdap
         }
     }
 
+
+    /*
+     * Get Product Weight Response from Api
+     * */
+    private void executeProductWeightDataAPI() {
+        try {
+            //Log.d("internate-check:", String.valueOf(PopUpHelper.checkInternetConnectionPopup(context)));
+            if (PopUpHelper.checkInternetConnection(context)) {
+                apiCallHelper.getProductWeightDelegate = this;
+                apiCallHelper.getProductWeightVariation(context,productId);
+
+            } else {
+                new AlertDialog.Builder(context)
+                        .setTitle("Warning")
+                        .setMessage("Please Turn On Data..!")
+                        .setIcon(android.R.drawable.ic_dialog_info)
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                executeProductWeightDataAPI();
+                            }
+                        })
+                        .show();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     public void initToolbar() {
 
         ((MenuActivity) activity).setUpToolbar(activity.getString(R.string.nav_menu_home), false);
@@ -126,15 +168,14 @@ public class ProductListFragment extends BaseFragment implements ProductListAdap
     /**
      * get Product list data and setUp adapter
      */
-    private void getProductListData()
-    {
+    private void getProductListData() {
         productListAdapter = new ProductListAdapter(activity, resGetProductLists);
         rvProductList.setAdapter(productListAdapter);
         productListAdapter.setOnItemClickListener(this);
     }
 
     /**
-     *  Menu item click listener & open fragment
+     * Menu item click listener & open fragment
      */
 
     @Override
@@ -143,8 +184,7 @@ public class ProductListFragment extends BaseFragment implements ProductListAdap
         item = menu.findItem(R.id.menu_left);
         item.setVisible(true);
         item.setIcon(R.drawable.cart);
-        item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener()
-        {
+        item.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 Utils.hideKeyboard(activity);
@@ -172,68 +212,72 @@ public class ProductListFragment extends BaseFragment implements ProductListAdap
     }
 
     /**
-     *  item click listener & open fragment
-     */
-
-    @Override
-    public void onItemClick(View view, ResGetProductList resGetProductList) {
-
-        ProductDetailsFragment fragmentProductDetails = new ProductDetailsFragment();
-        Bundle bundle = new Bundle();
-        bundle.putParcelable(activity.getString(R.string.bdl_model), (Parcelable) resGetProductList);
-        fragmentProductDetails.setArguments(bundle);
-        Utils.addNextFragment(activity, fragmentProductDetails, ProductListFragment.this, false);
-       /* int id = view.getId();
-        //Log.d("view_Id:", String.valueOf(id));
-        Log.d("view_Id:", String.valueOf(R.id.row_productlist_ivPlus));
-        switch (id) {
-            case R.id.row_productlist_ivPlus:
-                Toast.makeText(activity, "hiii", Toast.LENGTH_SHORT).show();
-                addToCart(true,rvProductList.getChildAdapterPosition(view));
-                break;
-           *//* default:
-                ProductDetailsFragment fragmentProductDetails = new ProductDetailsFragment();
-                Bundle bundle = new Bundle();
-                bundle.putParcelable(activity.getString(R.string.bdl_model), (Parcelable) resGetProductList);
-                fragmentProductDetails.setArguments(bundle);
-                Utils.addNextFragment(activity, fragmentProductDetails, ProductListFragment.this, false);
-                break;*//*
-        }*/
-
-    }
-
-    /**
-     *  Add to cart & refresh adapter
+     * Add to cart & refresh adapter
      */
 
     public void addToCart(boolean addTocart, int position, List<ResGetProductList> resGetProductLists) {
 
         if (addTocart) {
-
-            int totalKg = Integer.parseInt(resGetProductLists.get(position).getDefault_attributes().get(position).getOption());
+            int totalKg = Integer.parseInt(resGetProductLists.get(position).getDefault_attributes().get(0).getOption()
+                    .replaceAll("[kg]", ""));
             totalKg = totalKg + 1;
-            resGetProductLists.get(position).getDefault_attributes().get(position).setOption(String.valueOf(totalKg));
+            resGetProductLists.get(position).getDefault_attributes().get(0).setOption(String.valueOf(totalKg));
 
         } else {
 
-            int totalKg = Integer.parseInt(resGetProductLists.get(position).getDefault_attributes().get(position).getOption());
+            int totalKg = Integer.parseInt(resGetProductLists.get(position).getDefault_attributes().get(0).getOption()
+                    .replaceAll("[kg]", ""));
 
             if (totalKg < 1) {
-                resGetProductLists.get(position).getDefault_attributes().get(position).setOption("0");
+                resGetProductLists.get(position).getDefault_attributes().get(0).setOption("0");
             } else {
                 totalKg = totalKg - 1;
-                resGetProductLists.get(position).getDefault_attributes().get(position).setOption(String.valueOf(totalKg));
+                resGetProductLists.get(position).getDefault_attributes().get(0).setOption(String.valueOf(totalKg));
             }
         }
         productListAdapter.notifyDataSetChanged();
+    }
 
+    /**
+     *  item click listener & open fragment
+     */
+    @Override
+    public void onItemClick(View view, int position) {
+        switch (view.getId()) {
+            case R.id.row_cartlist_ivPlus:
+                addToCart(true, position, resGetProductLists);
+                break;
 
+            case R.id.row_cartlist_ivMins:
+                addToCart(false, position, resGetProductLists);
+                break;
+
+            case R.id.row_produclist_rlTotalCart:
+                addToCart(true, position, resGetProductLists);
+                break;
+            /*default:
+                ProductDetailsFragment fragmentProductDetails = new ProductDetailsFragment();
+                Bundle bundle = new Bundle();
+                bundle.putParcelable(activity.getString(R.string.bdl_model), (Parcelable) resGetProductLists);
+                fragmentProductDetails.setArguments(bundle);
+                Utils.addNextFragment(activity, fragmentProductDetails, ProductListFragment.this, false);
+                break;*/
+        }
     }
 
     @Override
     public void processFinishGetProductList(List<ResGetProductList> resGetProductList) {
-        Log.d("Product_List:",resGetProductList.toString());
+        Log.d("Product_List:", resGetProductList.toString());
         this.resGetProductLists = resGetProductList;
         getProductListData();
+        productId = String.valueOf(resGetProductList.get(0).getId());
+        Log.d("responseProductId:",productId);
+
+    }
+
+    @Override
+    public void processFinishGetProductWeight(List<ResGetProductWeight> resGetProductWeightList) {
+        this.resGetProductWeightList = resGetProductWeightList;
+        Log.d("responseProduct_wgt:",resGetProductWeightList.toString());
     }
 }
